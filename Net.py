@@ -20,14 +20,14 @@ class Net:
 											   'value': 0})  # value to be used later
 		return self.nodeGenes[-1]
 
-	def addConnection(self, inpNode: int, outNode: int, weight: float):
+	def addConnection(self, inpNode: int, outNode: int, weight: float, enabled=True):
 		"""Add a connection gene between inpNode and outNode (represented and node numbers)"""
 
 		self.connectionGenes.append({'innov': self.parent.checkInnov((inpNode, outNode)),
 														   'inputNode': inpNode,
 														   'outputNode': outNode,
 														   'weight': weight,
-														   'enabled': True})
+														   'enabled': enabled})
 
 	def populateInOut(self):
 		"""Create and populate the input and output layers of the net"""
