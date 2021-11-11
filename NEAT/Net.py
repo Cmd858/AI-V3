@@ -12,8 +12,9 @@ class Net:
 		self.inRange = (0, inNum-1)
 		self.outRange = (inNum, inNum+outNum-1)
 		self.populateInOut()  # populates the input and output layers with nodes
+		self.score = 0
 
-	def addNode(self, layer: int):
+	def addNode(self, layer: int) -> dict:
 		"""Add a node (dict) to the network at the specified layer (0: in, 1: hid, 2: out)"""
 		self.nodeGenes.append({'nodeNum': len(self.nodeGenes),
 											   'layer': layer,
@@ -43,29 +44,30 @@ class Net:
 			if not randint(0, 1) or self.inNum + self.outNum >= len(self.nodeGenes):
 				# bool choice of in -> hid or out (1), hid -> out (0), checks if any hidden nodes are available
 				node1 = randint(*self.inRange)
-				node2 = randint(self.outRange[0], self.outRange[0] + len(self.connectionGenes))
+				node2 = randint(self.outRange[0], len(self.nodeGenes) - 1)
 				# ^ equal chance between hid and out nodes
 			else:
-				node1 = randint(self.outRange[1] + 1, self.outRange[1] + len(self.connectionGenes))
+				node1 = randint(self.outRange[1] + 1, len(self.nodeGenes) - 1)
 				node2 = randint(*self.outRange)  # possible to have in lower than out due to number semantics
-			if not (node1, node2) in self.connectionGenes:
+			if not self.parent.checkInnov((node1, node2)) in self.connectionGenes:
 				self.addConnection(node1, node2, random() * 2 - 1)
 				break
 
 	def nodeMutation(self):
 		"""Add a new node to the hidden layer"""
 		attempts = 5
-		for attempt in range(attempts):
-			con = choice(self.connectionGenes)
-			if (self.inRange[0] < con['inputNode'] < self.inRange[1] and
-					self.outRange[0] < con['outputNode'] < self.outRange[1]):
-				newNode = self.addNode(1)
-				con['enabled'] = False  # disable original connection as it is being erased
-				self.addConnection(con['inputNode'], newNode['nodeNum'], con['weight'])
-				self.addConnection(newNode['nodeNum'], con['outputNode'], 1)  # overall weight not changed
-				break
+		if len(self.connectionGenes) != 0:
+			for attempt in range(attempts):
+				con = choice(self.connectionGenes)
+				if (self.inRange[0] < con['inputNode'] < self.inRange[1] and
+						self.outRange[0] < con['outputNode'] < self.outRange[1]):
+					newNode = self.addNode(1)
+					con['enabled'] = False  # disable original connection as it is being erased
+					self.addConnection(con['inputNode'], newNode['nodeNum'], con['weight'])
+					self.addConnection(newNode['nodeNum'], con['outputNode'], 1)  # overall weight not changed
+					break
 
-	def runNet(self, inputList: list):
+	def runNet(self, inputList: list) -> [float]:
 		"""Run the network and return the values of the output nodes"""
 		for nodeNum in range(self.inNum):
 			self.nodeGenes[nodeNum]['value'] = inputList[nodeNum]
@@ -77,6 +79,10 @@ class Net:
 			self.nodeGenes[outNode]['value'] += self.nodeGenes[inNode]['value'] * weight
 		return self.getOut()
 
-	def getOut(self):
+	def getOut(self) -> [float]:
 		"""Return a list populated by all node values in the outRange slice"""
 		return [node['value'] for node in self.nodeGenes[self.outRange[0]:self.outRange[1]+1]]  # beautiful
+
+	def setScore(self, score: float):
+		"""Sets self.score variable to input"""
+		self.score = score
