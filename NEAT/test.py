@@ -11,8 +11,9 @@ def testPopulation():
 		testPop.mutateNets()
 	print('Mutated')
 	for i in range(10):
-		net = testPop.getNetRun(i)
-		print(net.runNet([4, 5, 6, 7]))
+		net = testPop.population[i]
+		net.runNet([4, 5, 6, 7])
+		print(net.getOut())
 	newNet = testPop.crossover(testPop.population[0], testPop.population[1])
 	newNet['Connections'].sort(key=lambda x: x['innov'])
 	testPop.population[0].connectionGenes.sort(key=lambda x: x['innov'])
@@ -37,4 +38,4 @@ def testGraphing():
 
 if __name__ == '__main__':
 	testPopulation()
-	testGraphing()
+	# testGraphing()

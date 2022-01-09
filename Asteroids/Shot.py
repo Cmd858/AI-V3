@@ -1,37 +1,30 @@
 import math
 import pygame
-import time
 
 
 class Shot:
-
-    def __init__(self, vardict, ship, colour=(255,255,255)):
-        self.vardict = vardict
-        self.x = ship.x + ship.costume.get_width() / 2
-        self.y = ship.y + ship.costume.get_height() / 2
-        self.dx = -math.sin(math.radians(ship.dir)) * 5
-        self.dy = -math.cos(math.radians(ship.dir)) * 5
-        self.deathtick = 0
-        self.screen = vardict['screen']
-        self.colour = colour
+    def __init__(self, screen, x, y, dir):
+        self.screen = screen
+        self.x = x
+        self.y = y
+        self.dir = dir
+        self.hyp = 8
+        self.scrW = screen.get_width()
+        self.scrH = screen.get_height()
+        self.dx = self.hyp * math.sin(math.radians(self.dir))
+        self.dy = self.hyp * math.cos(math.radians(self.dir))
+        self.ticks = 0
+        self.maxticksalive = 90
 
     def move(self):
-        self.x += self.dx
-        self.y += self.dy
-        self.deathtick += 1
+        self.x = (self.x - self.dx) % self.scrW
+        self.y = (self.y - self.dy) % self.scrH
 
     def draw(self):
-        pygame.draw.circle(self.screen, self.colour, (int(self.x), int(self.y)), 1)
+        pygame.draw.circle(self.screen, (255, 255, 255), (self.x, self.y), 1)
 
-    def off_screen(self):
-        if self.x > self.vardict['scr_w']:
-            self.x = 0
-        if self.x < 0:
-            self.x = self.vardict['scr_w']
-        if self.y > self.vardict['scr_h']:
-            self.y = 0
-        if self.y < 0:
-            self.y = self.vardict['scr_h']
+    def tick(self):
+        self.ticks += 1
 
-    def delete(self):
-        return self.deathtick > 120
+    def despawnable(self):
+        return self.ticks > self.maxticksalive
