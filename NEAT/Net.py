@@ -16,11 +16,13 @@ class Net:
         self.fitness = 0
         self.adjustedFitness = 0
 
-    def addNode(self, layer: int) -> dict:
+    def addNode(self, layer: int, value=0, calc=0) -> dict:
         """Add a node (dict) to the network at the specified layer (0: in, 1: hid, 2: out)"""
         self.nodeGenes.append({'nodeNum': len(self.nodeGenes),
                                'layer': layer,
-                               'value': 0})  # value to be used later
+                               'value': value,
+                               'lastValue': value,
+                               'calculated': calc})  # lasValue is used for recursive connections
         return self.nodeGenes[-1]
 
     def addConnection(self, inpNode: int, outNode: int, weight: float, enabled=True):
@@ -34,8 +36,9 @@ class Net:
 
     def populateInOut(self):
         """Create and populate the input and output layers of the net"""
-        for node in range(self.inNum):  # populate input layer
-            self.addNode(0)  # nums represent layer
+        for node in range(self.inNum-1):  # populate input layer
+            self.addNode(0, 0, 2)  # nums represent layer
+        self.addNode(0, 1)  # bias node that never changes
         for node in range(self.outNum):  # populate output layer
             self.addNode(1)  # 1 is the last (output) layer
 
@@ -71,25 +74,56 @@ class Net:
                     self.addConnection(newNode['nodeNum'], con['outputNode'], 1)  # overall weight not changed
                     break
 
+    def resetNodes(self, inputList):
+        print(self.nodeGenes)
+        for i, node in enumerate(self.nodeGenes[:self.inNum-1]):
+            node['value'] = inputList[i]
+        print(self.nodeGenes)
+        # self.nodeGenes[self.inNum]['value'] = 1  # not really needed as bias value shouldn't change
+        for node in self.nodeGenes:
+            node['lastValue'] = node['value']
+            node['value'] = 0
+            node['calculated'] = 0
+
     def runNet(self, inputList: list) -> [float]:
         """Run the network and return the values of the output nodes"""
+
         # for nodeNum in range(self.inNum):
         #     self.nodeGenes[nodeNum]['value'] = self.sigmoid(inputList[nodeNum])
         # TODO: ^ make it use sigmoid on hidden and out after rejig
-        for node in self.nodeGenes:
-            node['value'] = 0
-
-        for nodeNum in range(self.inNum):
-            self.nodeGenes[nodeNum]['value'] = inputList[nodeNum]
-
+        # TODO: make it use resetNodes and add recursivness maybe
+        self.resetNodes(inputList)
         self.connectionGenes.sort(key=lambda x: x['inputNode'])  # sort to run through all of in then hid
+
+        def getValues(inpNode):  # calclist must be zero values for num of nodes
+            if inpNode['calculated'] == 0:
+                inpNode['calculated'] = 1
+                inputnodes = [(conn['inputNode'], conn['weight']) for conn in self.connectionGenes
+                              if conn['outputNode'] == inpNode['nodeNum']]
+                inpNode['value'] = sum([getValues(self.nodeGenes[inp[0]]) *
+                                        inp[1] for inp in inputnodes])
+                inpNode['calculated'] = 2
+                return inpNode['value']
+            elif inpNode['calculated'] == 1:
+                return inpNode['oldValue']
+            elif inpNode['calculated'] == 2:
+                return inpNode['value']
+
+            # TODO: this code should work but must update self not internal variable as it does
+            #  not persist causing no movement
+        for i in range(self.inNum+1, self.inNum+self.outNum):
+            getValues(self.nodeGenes[i])
+        print(self.nodeGenes)
+
+        """
         for connection in self.connectionGenes:  # gets connection dict
             inNode = connection['inputNode']
             outNode = connection['outputNode']  # temp vars to avoid messy one-liner
             weight = connection['weight']
             self.nodeGenes[outNode]['value'] += self.nodeGenes[inNode]['value'] * weight
+        """
         # TODO: redesign this to deal with recurrent and backwards connections like 5 <- 5 or 6 <- 8
-        return # output list
+        return  # output list
         # return self.getOut()
 
     def getOut(self) -> [float]:

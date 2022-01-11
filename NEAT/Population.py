@@ -22,7 +22,7 @@ class Pop:
         crossoverNum - number of attempts at crossover
         """
         self.netNum = netNum
-        self.inNum = inNum
+        self.inNum = inNum + 1  # add space for bias node
         self.outNum = outNum
         self.connectionMutation = connectionMutation
         self.nodeMutation = nodeMutation
@@ -156,6 +156,10 @@ class Pop:
             net.adjustedFitness = adjustFitness(net)
         # TODO: figure out how to crossover some of the best nets
         #  and what threshold to have for getting rid of the worst nets
+        # the next section will be guesswork based on the paper as I can't find info on this bit
+        # this is the bit when bad networks are culled and good networks are bred
+        # the amount of each this happens to is a complete guess
+
 
 
 

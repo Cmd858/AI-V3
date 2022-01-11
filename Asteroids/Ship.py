@@ -67,6 +67,7 @@ class Ship:
         self.inputList = self.raycast(drawrays)
         self.net.runNet(self.inputList)
         self.outputList = self.net.getOut()  # def not how outputList should be used
+        # print(self.outputList)
         if self.outputList[0] > 0.1:
             self.dir -= 4
         if self.outputList[1] > 0.1:

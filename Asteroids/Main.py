@@ -47,7 +47,7 @@ if __name__ == '__main__':
     font = pygame.font.SysFont('lucidaconsole', 60)
     font2 = pygame.font.SysFont('lucidaconsole', 20)
     ships: [Ship] = []
-    shipcount = 200
+    shipcount = 1
     drawRays = False
 
     highestScore = 0
