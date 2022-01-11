@@ -47,7 +47,7 @@ if __name__ == '__main__':
     font = pygame.font.SysFont('lucidaconsole', 60)
     font2 = pygame.font.SysFont('lucidaconsole', 20)
     ships: [Ship] = []
-    shipcount = 1
+    shipcount = 50
     drawRays = False
 
     highestScore = 0
@@ -57,8 +57,9 @@ if __name__ == '__main__':
     netNum = shipcount
     inNum = 8
     outNum = 4
-    connectionMutationChance = 1
-    nodeMutationChance = 0.1
+    connectionMutationChance = 0.5
+    nodeMutationChance = 0.03
+    weightMutationChance = 0.8
     crossoverNum = 3
 
     population = Pop(netNum,
@@ -66,13 +67,14 @@ if __name__ == '__main__':
                      outNum,
                      connectionMutationChance,
                      nodeMutationChance,
+                     weightMutationChance,
                      crossoverNum)
 
     population.populate()
     for i in range(shipcount):
         ships.append(Ship(screen, population.population[i]))
     for _ in range(5):
-        population.mutateNets()
+        population.mutateNets((1, 2))
     while 1:
         clock.tick(60)
         controls()
@@ -92,9 +94,10 @@ if __name__ == '__main__':
                 lifeHighScore = highestScore
             avgScore = sum([ship.score for ship in ships])/shipcount
             print(f'highestScore: {highestScore}, avgScore: {avgScore}')
+            # TODO: make built in value calculation for standard deviation etc
 
             ships.sort(key=lambda x: x.score, reverse=True)
-            # print(ships[0].score, ships[-1].score)
+            print(ships[0].score, ships[-1].score)
             for i, ship in enumerate(ships):
                 population.population[i] = ship.net  # rearrange the nets to be in the same order as the ships
                 ship.reset()
@@ -105,8 +108,7 @@ if __name__ == '__main__':
                     ship.net.connectionGenes = genes['Connections']
                     ship.net.nodeGenes = genes['Nodes']
             # TODO: this ^ is super temporary until i can convince myself to figure out the speciation
-            for _ in range(5):
-                population.mutateNets(1)
+            population.mutateNets((1, 5), 1)
             # TODO: maybe re-sort net population based on ship score
             #  each time to allow easy easy access to the best nets
         # screen.blit(font.render(f'{int(clock.get_fps())}', True, (255, 255, 255), None), (0, 0))

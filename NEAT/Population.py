@@ -10,6 +10,7 @@ class Pop:
                  outNum: int,
                  connectionMutation: float,
                  nodeMutation: float,
+                 weightMutation: float,
                  crossoverNum: int):
         """
         The init method to set up the population class
@@ -26,6 +27,7 @@ class Pop:
         self.outNum = outNum
         self.connectionMutation = connectionMutation
         self.nodeMutation = nodeMutation
+        self.weightMutation = weightMutation
         self.crossoverNum = crossoverNum
         self.innovs = []
         self.population: list[Net] = []
@@ -46,13 +48,19 @@ class Pop:
             self.innovs.append(inOutTuple)
             return len(self.innovs) - 1  # -1 bc last innov is always 1 less than list length
 
-    def mutateNets(self, start=0):
+    def mutateNets(self, mutationRange, start=0):
         """Randomly mutate the network via odds supplied in __init__"""
+        # TODO: reference paper to make mutation the same as example
         for net in self.population[start:]:  # slice of list to mutate
-            if random() < self.connectionMutation:
-                net.connectionMutation()
-            if random() < self.nodeMutation:
-                net.nodeMutation()
+            for i in range(randint(*mutationRange)):
+                if random() < self.weightMutation:
+                    # TODO: fix this from reducing highest score bc like wtf how?
+                    # net.weightMutation()
+                    pass
+                if random() < self.connectionMutation:
+                    net.connectionMutation()
+                if random() < self.nodeMutation:
+                    net.nodeMutation()
 
     def getNetRun(self, netNum: int):
         """Return a reference to the net instance's runNet function for running from a controller class"""

@@ -36,7 +36,7 @@ class Net:
 
     def populateInOut(self):
         """Create and populate the input and output layers of the net"""
-        for node in range(self.inNum-1):  # populate input layer
+        for node in range(self.inNum - 1):  # populate input layer
             self.addNode(0, 0, 2)  # nums represent layer
         self.addNode(0, 1)  # bias node that never changes
         for node in range(self.outNum):  # populate output layer
@@ -44,43 +44,39 @@ class Net:
 
     def connectionMutation(self):
         """Mutate a connection between two existing nodes"""
-        attempts = 1
-        for attempt in range(attempts):
-            if not randint(0, 1) or self.inNum + self.outNum >= len(self.nodeGenes):
-                # bool choice of in -> hid or out (1), hid -> out (0), checks if any hidden nodes are available
-                node1 = randint(*self.inRange)
-                node2 = randint(self.outRange[0], len(self.nodeGenes) - 1)
-            # ^ equal chance between hid and out nodes
-            else:
-                node1 = randint(self.outRange[1] + 1, len(self.nodeGenes) - 1)
-                node2 = randint(*self.outRange)  # possible to have in lower than out due to number semantics
-            if not self.parent.checkInnov((node1, node2)) in self.connectionGenes:
-                self.addConnection(node1, node2, random() * 2 - 1)
-                break
+        inNode = randint(0, len(self.nodeGenes) - 1)
+        outNode = randint(self.inNum, len(self.nodeGenes) - 1)
+        if not self.parent.checkInnov((inNode, outNode)) in [gene['innov'] for gene in self.connectionGenes]:
+            self.addConnection(inNode, outNode, random() * 2 - 1)
 
     def nodeMutation(self):
         """Add a new node to the hidden layer"""
-        attempts = 5
-        if len(self.connectionGenes) != 0:
-            for attempt in range(attempts):
-                con = choice(self.connectionGenes)
-                # print(self.connectionGenes)
-                # print(con)
-                if (self.inRange[0] < con['inputNode'] < self.inRange[1] and
-                        self.outRange[0] < con['outputNode'] < self.outRange[1]):
-                    newNode = self.addNode(1)
-                    con['enabled'] = False  # disable original connection as it is being erased
-                    self.addConnection(con['inputNode'], newNode['nodeNum'], con['weight'])
-                    self.addConnection(newNode['nodeNum'], con['outputNode'], 1)  # overall weight not changed
-                    break
+        if len(self.connectionGenes) > 0:
+            conn = choice(self.connectionGenes)
+            inNode, outNode = conn['inputNode'], conn['outputNode']
+            newNode = self.addNode(1)
+            conn['enabled'] = False
+            self.addConnection(inNode, newNode['nodeNum'], conn['weight'])
+            self.addConnection(newNode['nodeNum'], outNode, 1)
+
+    def weightMutation(self):
+        for i in range(len(self.connectionGenes)):
+            if rand := random() < 0.9:
+                if rand < 0.45:
+                    self.connectionGenes[i]['weight'] += 0.01
+                else:
+                    self.connectionGenes[i]['weight'] -= 0.01
+            else:
+                self.connectionGenes[i]['weight'] = random()*2-1
+        # TODO: prevent weight exceeding range (-1,1)
 
     def resetNodes(self, inputList):
-        print(self.nodeGenes)
-        for i, node in enumerate(self.nodeGenes[:self.inNum-1]):
-            node['value'] = inputList[i]
-        print(self.nodeGenes)
+        for i, node in enumerate(self.nodeGenes[:self.inNum - 1]):
+            self.nodeGenes[i]['value'] = inputList[i]
+            # self.nodeGenes[i].pop('lastValue', None)  # test to see if this is being accessed
+        # print(self.nodeGenes)
         # self.nodeGenes[self.inNum]['value'] = 1  # not really needed as bias value shouldn't change
-        for node in self.nodeGenes:
+        for node in self.nodeGenes[self.inNum:]:
             node['lastValue'] = node['value']
             node['value'] = 0
             node['calculated'] = 0
@@ -100,20 +96,24 @@ class Net:
                 inpNode['calculated'] = 1
                 inputnodes = [(conn['inputNode'], conn['weight']) for conn in self.connectionGenes
                               if conn['outputNode'] == inpNode['nodeNum']]
-                inpNode['value'] = sum([getValues(self.nodeGenes[inp[0]]) *
-                                        inp[1] for inp in inputnodes])
+                inpNode['value'] = self.sigmoid(sum([getValues(self.nodeGenes[inp[0]]) *
+                                                     inp[1] for inp in inputnodes]))
+                # print(f'vals: {[(self.nodeGenes[inp[0]], inp[1]) for inp in inputnodes]}')
                 inpNode['calculated'] = 2
                 return inpNode['value']
             elif inpNode['calculated'] == 1:
-                return inpNode['oldValue']
+                return inpNode['lastValue']
             elif inpNode['calculated'] == 2:
                 return inpNode['value']
 
             # TODO: this code should work but must update self not internal variable as it does
             #  not persist causing no movement
-        for i in range(self.inNum+1, self.inNum+self.outNum):
+
+        for i in range(self.inNum + 1, self.inNum + self.outNum):
+            # print(self.nodeGenes[i])
             getValues(self.nodeGenes[i])
-        print(self.nodeGenes)
+            # print(self.nodeGenes[i])
+        # print(self.nodeGenes)
 
         """
         for connection in self.connectionGenes:  # gets connection dict
@@ -136,4 +136,4 @@ class Net:
 
     @staticmethod
     def sigmoid(x):
-        return 1/(1+math.e ** (-4.9 * x))  # sigmoid func used in paper
+        return 1 / (1 + math.e ** (-4.9 * x))  # sigmoid func used in paper

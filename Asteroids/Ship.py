@@ -68,15 +68,15 @@ class Ship:
         self.net.runNet(self.inputList)
         self.outputList = self.net.getOut()  # def not how outputList should be used
         # print(self.outputList)
-        if self.outputList[0] > 0.1:
+        if self.outputList[0] > 0.5:
             self.dir -= 4
-        if self.outputList[1] > 0.1:
+        if self.outputList[1] > 0.5:
             self.dir += 4
         self.dir = self.dir % 360
-        if self.outputList[2] > 0.1:
+        if self.outputList[2] > 0.5:
             self.dx -= self.hyp * math.sin(math.radians(self.dir))
             self.dy -= self.hyp * math.cos(math.radians(self.dir))
-        if self.outputList[3] > 0.1:
+        if self.outputList[3] > 0.5:
             if self.lastShot >= self.shotdelay:
                 self.shots.append(Shot(self.screen, self.x, self.y, self.dir))
                 self.lastShot = 0
