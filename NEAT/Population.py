@@ -1,6 +1,6 @@
 from NEAT import Graphing
 from NEAT.Net import Net
-from random import random, randint
+from random import random, randint, choice
 
 
 class Pop:
@@ -31,7 +31,7 @@ class Pop:
         self.crossoverNum = crossoverNum
         self.innovs = []
         self.population: list[Net] = []
-        self.species = []
+        self.species: list[list[Net]] = [[]]  # 2d list to store nets based on species
         self.results = []
         self.data = []  # used to store scoring data for analysis each generation
         self.gen = 0
@@ -40,6 +40,7 @@ class Pop:
         """Populate the class with the required number of nets"""
         for net in range(self.netNum):
             self.population.append(Net(self, self.inNum, self.outNum))
+            self.species[0].append(self.population[-1])
 
     def checkInnov(self, inOutTuple):
         """Return the innov number of a connection and add that connection if it doesn't exist"""
@@ -166,9 +167,27 @@ class Pop:
             adjustedFitness = net.fitness/sum([deltaT > getDelta(net.connectionGenes,  # sh func (pg13)
                                                         x.connectionGenes) for x in self.population])
             return adjustedFitness
-
+        # grouping into different species
+        reps = [choice(nets) for nets in self.species]
+        for i in range(len(self.species)):
+            self.species[i] = []
+        for i in range(len(self.population)):
+            for j in range(len(self.species)):
+                if getDelta(reps[j].connectionGenes, self.population[i]) < deltaT:
+                    self.species[j].append(self.population[i])
+                    self.population[i].species = j
+            else:
+                self.species.append([self.population[i]])
+                reps.append(self.population[i])
+                self.population[i].species = len(self.species) - 1
+        # explict fitness sharing
         for net in self.population:
             net.adjustedFitness = adjustFitness(net)
+        # the culling
+        fitnessOrder = list(self.population).sort(key=lambda x: x.adjustedFitness)
+        for i in range(int(len(self.population) * 0.5)):
+            pass
+
         # TODO: figure out how to crossover some of the best nets
         #  and what threshold to have for getting rid of the worst nets
         # the next section will be guesswork based on the paper as I can't find info on this bit
