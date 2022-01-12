@@ -1,4 +1,4 @@
-# from NEAT import Graphing  # not in 3.10 yet
+from NEAT import Graphing
 from NEAT.Net import Net
 from random import random, randint
 
@@ -34,6 +34,7 @@ class Pop:
         self.species = []
         self.results = []
         self.data = []  # used to store scoring data for analysis each generation
+        self.gen = 0
 
     def populate(self):
         """Populate the class with the required number of nets"""
@@ -55,7 +56,7 @@ class Pop:
             for i in range(randint(*mutationRange)):
                 if random() < self.weightMutation:
                     # TODO: fix this from reducing highest score bc like wtf how?
-                    # net.weightMutation()
+                    net.weightMutation()
                     pass
                 if random() < self.connectionMutation:
                     net.connectionMutation()
@@ -66,14 +67,19 @@ class Pop:
         """Return a reference to the net instance's runNet function for running from a controller class"""
         return self.population[netNum].runNet
 
-    def recordData(self, data):
+    def recordData(self, netScores):
         """Append generation data for later analysis"""
-        self.data.append(data)
+        highestScore = max(netScores)
+        avgScore = sum(netScores)/len(netScores)
+        stdDeviation = (sum((avgScore - score) ** 2 for score in netScores) / len(netScores)) ** 0.5
+        self.data.append({'scores': netScores,
+                          'highestScore': highestScore,
+                          'avgScore': avgScore,
+                          'stdDeviation': stdDeviation})
 
     def plotGraph(self):
         """Plot generational data using the graphing module"""
-
-    # Graphing.plotData(self.data)
+        Graphing.plotData(self.data)
 
     def crossover(self, net1: Net, net2: Net):
         """
@@ -82,6 +88,7 @@ class Pop:
         Implements the crossover algorithm in NEAT, which will pick randomly with matching genes and
         only take disjoint and excess genes for the more fit parent
         """
+        # TODO: edit this func to prevent sharing references to mutable objects and do testing to find out wtf is up
         net1fitness = net1.fitness
         net2fitness = net2.fitness
         newConnections = {'Connections': [], 'Nodes': []}
@@ -90,17 +97,17 @@ class Pop:
         for innov in range(len(self.innovs)):
             if innov in innovs1 and innov in innovs2:
                 if randint(0, 1):  # bool True or False = 50% chance for each gene
-                    gene = net1.connectionGenes[innovs1.index(innov)]
+                    gene = dict(net1.connectionGenes[innovs1.index(innov)])  # needs dict constructor to prevent ref
                     newConnections['Connections'].append(gene)
                 else:
-                    gene = net2.connectionGenes[innovs2.index(innov)]
+                    gene = dict(net2.connectionGenes[innovs2.index(innov)])
                     newConnections['Connections'].append(gene)
             elif innov in innovs1 or innov in innovs2:
                 if innov in innovs1 and net1fitness > net2fitness:
-                    gene = net1.connectionGenes[innovs1.index(innov)]
+                    gene = dict(net1.connectionGenes[innovs1.index(innov)])
                     newConnections['Connections'].append(gene)
                 elif innov in innovs2 and net1fitness < net2fitness:
-                    gene = net2.connectionGenes[innovs2.index(innov)]
+                    gene = dict(net2.connectionGenes[innovs2.index(innov)])
                     newConnections['Connections'].append(gene)
         returnList = []
         nodeNums1 = {*[node['nodeNum'] for node in net1.nodeGenes]}
@@ -111,14 +118,14 @@ class Pop:
         for i in range(max(nodeNums1 | nodeNums2) + 1):
             if i in nodeNums1 and i in nodeNums2:
                 if randint(0, 1):
-                    returnList.append(next(item for item in net1.nodeGenes if item['nodeNum'] == i))
-                else:
-                    returnList.append(next(item for item in net2.nodeGenes if item['nodeNum'] == i))
+                    returnList.append(dict(next(item for item in net1.nodeGenes if item['nodeNum'] == i)))
+                else:  # ^ has dict constructor to prevent using a reference to the best nets genes
+                    returnList.append(dict(next(item for item in net2.nodeGenes if item['nodeNum'] == i)))
             elif i in nodeNums1 or i in nodeNums2:
                 if i in nodeNums1:
-                    returnList.append(next(item for item in net1.nodeGenes if item['nodeNum'] == i))
+                    returnList.append(dict(next(item for item in net1.nodeGenes if item['nodeNum'] == i)))
                 else:
-                    returnList.append(next(item for item in net2.nodeGenes if item['nodeNum'] == i))
+                    returnList.append(dict(next(item for item in net2.nodeGenes if item['nodeNum'] == i)))
         newConnections['Nodes'] = returnList
         # print(newConnections)
         return newConnections
@@ -180,7 +187,5 @@ class Pop:
         return []
 
     def finishGeneration(self):
-        attempts = []  # indexes of parent nets
-        for attempt in range(self.crossoverNum):
-            pass  # TODO: iterate nets and push new genes in
-        self.repopulate(self.population)
+
+        self.gen += 1

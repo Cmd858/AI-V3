@@ -125,7 +125,7 @@ class Ship:
 
     def makeAsteroids(self):
         #positions = [(0, 0, 0)]
-        positions = [(0, 0, i/self.asteroidcount*360 + -10) for i in range(self.asteroidcount)]
+        positions = [(0, 0, i/self.asteroidcount*360-5) for i in range(self.asteroidcount)]
         for position in positions:
             self.asteroids.append(Asteroid(self.screen, *position, 1, 2))
 

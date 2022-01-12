@@ -15,6 +15,7 @@ class Net:
         self.populateInOut()  # populates the input and output layers with nodes
         self.fitness = 0
         self.adjustedFitness = 0
+        self.species = 0
 
     def addNode(self, layer: int, value=0, calc=0) -> dict:
         """Add a node (dict) to the network at the specified layer (0: in, 1: hid, 2: out)"""

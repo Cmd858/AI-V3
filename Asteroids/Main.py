@@ -15,11 +15,16 @@ def controls():
             sys.exit(0)
         if event.type == KEYDOWN and event.key == K_r:
             drawRays = not drawRays
+        if event.type == KEYDOWN and event.key == K_g:
+            population.plotGraph()
 
 
 def ui(screen, ui_open):
     offset = 0
     if ui_open:
+        screen.blit(font2.render(f'Gen: {population.gen}',
+                                 True, (255, 255, 255), None), (0, offset * 20))
+        offset += 1
         screen.blit(font2.render(f'FPS: {int(clock.get_fps())}',
                                  True, (255, 255, 255), None), (0, offset * 20))
         offset += 1
@@ -47,7 +52,7 @@ if __name__ == '__main__':
     font = pygame.font.SysFont('lucidaconsole', 60)
     font2 = pygame.font.SysFont('lucidaconsole', 20)
     ships: [Ship] = []
-    shipcount = 50
+    shipcount = 200
     drawRays = False
 
     highestScore = 0
@@ -90,6 +95,8 @@ if __name__ == '__main__':
         shipsDead = sum(ship.dead for ship in ships)
         highestScore = max([ship.score for ship in ships])
         if shipsDead == len(ships):
+            population.recordData([ship.score for ship in ships])
+            highestScore = max([ship.score for ship in ships])
             if highestScore > lifeHighScore:
                 lifeHighScore = highestScore
             avgScore = sum([ship.score for ship in ships])/shipcount
@@ -97,20 +104,23 @@ if __name__ == '__main__':
             # TODO: make built in value calculation for standard deviation etc
 
             ships.sort(key=lambda x: x.score, reverse=True)
-            print(ships[0].score, ships[-1].score)
+            # print(ships[0].score, ships[-1].score)
             for i, ship in enumerate(ships):
                 population.population[i] = ship.net  # rearrange the nets to be in the same order as the ships
                 ship.reset()
+            #"""
             for i, ship in enumerate(ships):
                 if i > 10:
                     genes = population.crossover(ships[random.randint(0, 3)].net,
                                                  ships[random.randint(0, 3)].net)
                     ship.net.connectionGenes = genes['Connections']
                     ship.net.nodeGenes = genes['Nodes']
+            #"""
             # TODO: this ^ is super temporary until i can convince myself to figure out the speciation
-            population.mutateNets((1, 5), 1)
+            population.mutateNets((1, 5), 3)
             # TODO: maybe re-sort net population based on ship score
             #  each time to allow easy easy access to the best nets
+            population.finishGeneration()
         # screen.blit(font.render(f'{int(clock.get_fps())}', True, (255, 255, 255), None), (0, 0))
 
         ui(screen, True)
