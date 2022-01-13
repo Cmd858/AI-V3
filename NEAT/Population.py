@@ -56,9 +56,7 @@ class Pop:
         for net in self.population[start:]:  # slice of list to mutate
             for i in range(randint(*mutationRange)):
                 if random() < self.weightMutation:
-                    # TODO: fix this from reducing highest score bc like wtf how?
                     net.weightMutation()
-                    pass
                 if random() < self.connectionMutation:
                     net.connectionMutation()
                 if random() < self.nodeMutation:
@@ -89,7 +87,6 @@ class Pop:
         Implements the crossover algorithm in NEAT, which will pick randomly with matching genes and
         only take disjoint and excess genes for the more fit parent
         """
-        # TODO: edit this func to prevent sharing references to mutable objects and do testing to find out wtf is up
         net1fitness = net1.fitness
         net2fitness = net2.fitness
         newConnections = {'Connections': [], 'Nodes': []}
@@ -183,10 +180,14 @@ class Pop:
         # explict fitness sharing
         for net in self.population:
             net.adjustedFitness = adjustFitness(net)
+        for species in self.species:
+            species.sort(key=lambda x: x.adjustedFitness)
         # the culling
-        fitnessOrder = list(self.population).sort(key=lambda x: x.adjustedFitness)
-        for i in range(int(len(self.population) * 0.5)):
-            pass
+        fitnessOrder = list(self.population)
+        fitnessOrder.sort(key=lambda x: x.adjustedFitness)
+        for i in range(int(len(fitnessOrder) * 0.5)):
+            del self.species[fitnessOrder[i].species][0]  # works bc both list are sorted
+        # TODO: mention of distribution in pg110
 
         # TODO: figure out how to crossover some of the best nets
         #  and what threshold to have for getting rid of the worst nets

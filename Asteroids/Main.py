@@ -101,7 +101,6 @@ if __name__ == '__main__':
                 lifeHighScore = highestScore
             avgScore = sum([ship.score for ship in ships])/shipcount
             print(f'highestScore: {highestScore}, avgScore: {avgScore}')
-            # TODO: make built in value calculation for standard deviation etc
 
             ships.sort(key=lambda x: x.score, reverse=True)
             # print(ships[0].score, ships[-1].score)
@@ -116,7 +115,7 @@ if __name__ == '__main__':
                     ship.net.connectionGenes = genes['Connections']
                     ship.net.nodeGenes = genes['Nodes']
             #"""
-            # TODO: this ^ is super temporary until i can convince myself to figure out the speciation
+            #   TODO: this ^ is super temporary until i can convince myself to figure out the speciation
             population.mutateNets((1, 5), 3)
             # TODO: maybe re-sort net population based on ship score
             #  each time to allow easy easy access to the best nets

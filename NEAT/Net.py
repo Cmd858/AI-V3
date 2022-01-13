@@ -87,8 +87,6 @@ class Net:
 
         # for nodeNum in range(self.inNum):
         #     self.nodeGenes[nodeNum]['value'] = self.sigmoid(inputList[nodeNum])
-        # TODO: ^ make it use sigmoid on hidden and out after rejig
-        # TODO: make it use resetNodes and add recursivness maybe
         self.resetNodes(inputList)
         self.connectionGenes.sort(key=lambda x: x['inputNode'])  # sort to run through all of in then hid
 
@@ -107,23 +105,12 @@ class Net:
             elif inpNode['calculated'] == 2:
                 return inpNode['value']
 
-            # TODO: this code should work but must update self not internal variable as it does
-            #  not persist causing no movement
 
         for i in range(self.inNum + 1, self.inNum + self.outNum):
             # print(self.nodeGenes[i])
             getValues(self.nodeGenes[i])
             # print(self.nodeGenes[i])
         # print(self.nodeGenes)
-
-        """
-        for connection in self.connectionGenes:  # gets connection dict
-            inNode = connection['inputNode']
-            outNode = connection['outputNode']  # temp vars to avoid messy one-liner
-            weight = connection['weight']
-            self.nodeGenes[outNode]['value'] += self.nodeGenes[inNode]['value'] * weight
-        """
-        # TODO: redesign this to deal with recurrent and backwards connections like 5 <- 5 or 6 <- 8
         return  # output list
         # return self.getOut()
 
