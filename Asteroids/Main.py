@@ -40,6 +40,9 @@ def ui(screen, ui_open):
         screen.blit(font2.render(f'DrawRays: {drawRays}',
                                  True, (255, 255, 255), None), (0, offset * 20))
         offset += 1
+        screen.blit(font2.render(f'Species: {len(population.species)}',
+                                 True, (255, 255, 255), None), (0, offset * 20))
+        offset += 1
 
 
 if __name__ == '__main__':
@@ -52,7 +55,8 @@ if __name__ == '__main__':
     font = pygame.font.SysFont('lucidaconsole', 60)
     font2 = pygame.font.SysFont('lucidaconsole', 20)
     ships: [Ship] = []
-    shipcount = 50
+    shipcount = 200
+    # shipcount = 50
     drawRays = False
 
     highestScore = 0
@@ -107,14 +111,15 @@ if __name__ == '__main__':
             for i, ship in enumerate(ships):
                 population.population[i] = ship.net  # rearrange the nets to be in the same order as the ships
                 ship.reset()
-            #"""
+            """
             for i, ship in enumerate(ships):
                 if i > 10:
                     genes = population.crossover(ships[random.randint(0, 3)].net,
                                                  ships[random.randint(0, 3)].net)
                     ship.net.connectionGenes = genes['Connections']
                     ship.net.nodeGenes = genes['Nodes']
-            #"""
+            """
+            population.repopulate()
             #   TODO: this ^ is super temporary until i can convince myself to figure out the speciation
             population.mutateNets((1, 5), 3)
             # TODO: maybe re-sort net population based on ship score

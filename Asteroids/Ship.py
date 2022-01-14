@@ -42,6 +42,7 @@ class Ship:
 
     def reset(self):
         # print(self.score)
+        self.net.fitness = self.score
         self.score = 0
         self.x = 300
         self.y = 300

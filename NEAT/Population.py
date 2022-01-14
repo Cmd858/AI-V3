@@ -62,6 +62,15 @@ class Pop:
                 if random() < self.nodeMutation:
                     net.nodeMutation()
 
+    def mutateNet(self, net, mutationRange):
+        for i in range(randint(*mutationRange)):
+            if random() < self.weightMutation:
+                net.weightMutation()
+            if random() < self.connectionMutation:
+                net.connectionMutation()
+            if random() < self.nodeMutation:
+                net.nodeMutation()
+
     def getNetRun(self, netNum: int):
         """Return a reference to the net instance's runNet function for running from a controller class"""
         return self.population[netNum].runNet
@@ -69,7 +78,7 @@ class Pop:
     def recordData(self, netScores):
         """Append generation data for later analysis"""
         highestScore = max(netScores)
-        avgScore = sum(netScores)/len(netScores)
+        avgScore = sum(netScores) / len(netScores)
         stdDeviation = (sum((avgScore - score) ** 2 for score in netScores) / len(netScores)) ** 0.5
         self.data.append({'scores': netScores,
                           'highestScore': highestScore,
@@ -128,7 +137,7 @@ class Pop:
         # print(newConnections)
         return newConnections
 
-    def repopulate(self, nets: list[Net]):
+    def repopulate(self):
         """Overwrite the genes in net instances to avoid recreation"""
         # TODO: apply speciation here and maybe rename the func
         excessCoef = 1
@@ -137,7 +146,9 @@ class Pop:
         deltaT = 3  # speciation threshold
 
         def getDelta(connections1, connections2):
-            N = 1  # should be num genes for count of more than about 20
+            N = max(len(connections1), len(connections2))  # should be num genes for count of more than about 20
+            if N == 0:
+                N = 1
             matching = 0
             excess = 0
             disjoint = 0
@@ -145,32 +156,38 @@ class Pop:
             net1innovs = [connection['innov'] for connection in connections1]
             net2innovs = [connection['innov'] for connection in connections2]
             allinnovs = net1innovs + net2innovs
-            excessThreshold = min(max(net1innovs), max(net2innovs))  # the max number that can be disjoint
-            for i in range(max(allinnovs)):
+            excessThreshold = min(max(net1innovs, default=0), max(net2innovs, default=0))
+            # ^ the max number that can be disjoint
+            for i in range(max(allinnovs, default=0)):
                 count = allinnovs.count(i)
                 if count == 2:
                     matching += 1
-                    weightDifSum += abs(connections1[i]['weight'] -  # used to calculate the average weight difference
-                                        connections2[allinnovs.index(i, i+1)-len(connections1)]['weight'])
+                    # print(f'i: {i}, con1: {connections1}, con2: {connections2}')
+                    weightDifSum += abs(connections1[net1innovs.index(i)]['weight'] -  # used to calculate the average weight difference
+                                        connections2[net2innovs.index(i)]['weight'])
                 elif count == 1:
                     if i <= excessThreshold:
                         disjoint += 1
                     else:
                         excess += 1
-            avgWeight = weightDifSum / matching  # average weight difference of matching genes
-            return excessCoef*excess/N + disjointCoef*disjoint/N + avgWeightCoef * avgWeight
+            if matching > 0:
+                avgWeight = weightDifSum / matching  # average weight difference of matching genes
+            else:
+                avgWeight = 0
+            return excessCoef * excess / N + disjointCoef * disjoint / N + avgWeightCoef * avgWeight
 
         def adjustFitness(net):
-            adjustedFitness = net.fitness/sum([deltaT > getDelta(net.connectionGenes,  # sh func (pg13)
-                                                        x.connectionGenes) for x in self.population])
+            adjustedFitness = net.fitness / sum([deltaT > getDelta(net.connectionGenes,  # sh func (pg13)
+                                                                   x.connectionGenes) for x in self.population])
             return adjustedFitness
+
         # grouping into different species
         reps = [choice(nets) for nets in self.species]
         for i in range(len(self.species)):
             self.species[i] = []
         for i in range(len(self.population)):
             for j in range(len(self.species)):
-                if getDelta(reps[j].connectionGenes, self.population[i]) < deltaT:
+                if getDelta(reps[j].connectionGenes, self.population[i].connectionGenes) < deltaT:
                     self.species[j].append(self.population[i])
                     self.population[i].species = j
             else:
@@ -185,19 +202,48 @@ class Pop:
         # the culling
         fitnessOrder = list(self.population)
         fitnessOrder.sort(key=lambda x: x.adjustedFitness)
+        for species in self.species:
+            print([net.adjustedFitness for net in species])
+        offspringWeights = [sum([net.adjustedFitness for net in species]) for species in self.species]  # lovely
         for i in range(int(len(fitnessOrder) * 0.5)):
             del self.species[fitnessOrder[i].species][0]  # works bc both list are sorted
         # TODO: mention of distribution in pg110
+        # mutation and crossover
+        print(offspringWeights)
+        savedNets = []
+        for i in range(len(self.species)):
+            if len(self.species[i]) > 5:  # saves best of significant populations
+                savedNets.append({'Nodes': list(self.species[i][-1].nodeGenes),
+                                  'Connections': list(self.species[i][-1].connectionGenes),
+                                  'Species': i})
+        weightSum = sum(offspringWeights)
+        for i in range(len(self.species)):
+            if weightSum > 0:
+                for j in range(int(self.netNum * 0.75 * (offspringWeights[i] / weightSum))):
+                    savedNets.append(self.crossover(choice(self.species[i]), choice(self.species[i])))
+        for i in range(len(self.species)):
+            if weightSum > 0:
+                for j in range(
+                        int((self.netNum - len(savedNets)) * (offspringWeights[i] / weightSum))):  # might be over 3/4 full
+                    net = choice(self.species[i])
+                    fitnessOrder[0].connectionGenes = net.connectionGenes
+                    fitnessOrder[0].nodeGenes = net.connectionGenes
+                    self.mutateNet(fitnessOrder[0], (1, 5))
+                    savedNets.append({'Nodes': list(fitnessOrder[0].nodeGenes),
+                                      'Connections': list(fitnessOrder[0].connectionGenes),
+                                      'Species': i})
+        print(len(savedNets))
+        print(len(self.population))
+        for i, net in enumerate(self.population):
+            net.connectionGenes = savedNets[i]['Connections']
+            net.nodeGenes = savedNets[i]['Nodes']
+            # net.species = savedNets[i]['Species']
 
-        # TODO: figure out how to crossover some of the best nets
-        #  and what threshold to have for getting rid of the worst nets
+        # TODO: figure out how to make it have only a few species and not nore saved nets than in population
+        #  might need to purge empty species net idk
         # the next section will be guesswork based on the paper as I can't find info on this bit
         # this is the bit when bad networks are culled and good networks are bred
         # the amount of each this happens to is a complete guess
-
-
-
-
 
     # TODO: finish repopulation logic
 
