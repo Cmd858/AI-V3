@@ -1,6 +1,8 @@
+from math import ceil
+
 from NEAT import Graphing
 from NEAT.Net import Net
-from random import random, randint, choice
+from random import random, randint, choice, choices
 
 
 class Pop:
@@ -143,8 +145,8 @@ class Pop:
         excessCoef = 1
         disjointCoef = 1  # standard coefficients (p13)
         avgWeightCoef = 0.4
-        deltaT = 3  # speciation threshold
-
+        deltaT = 1  # speciation threshold
+        # TODO: maybe test to make sure species are properly protected, stabilise species
         def getDelta(connections1, connections2):
             N = max(len(connections1), len(connections2))  # should be num genes for count of more than about 20
             if N == 0:
@@ -175,25 +177,35 @@ class Pop:
             else:
                 avgWeight = 0
             return excessCoef * excess / N + disjointCoef * disjoint / N + avgWeightCoef * avgWeight
+        # TODO: figure out why delta func doesn't return consistent results
 
         def adjustFitness(net):
-            adjustedFitness = net.fitness / sum([deltaT > getDelta(net.connectionGenes,  # sh func (pg13)
-                                                                   x.connectionGenes) for x in self.population])
+            # print(sum([deltaT > getDelta(net.connectionGenes, x.connectionGenes) for x in self.population]))
+            adjustedFitness = net.fitness / (s := sum([deltaT > getDelta(net.connectionGenes,  # sh func (pg13)
+                                                                   x.connectionGenes) for x in self.population]))
+            # print(s/200)
             return adjustedFitness
-
+        # """
         # grouping into different species
         reps = [choice(nets) for nets in self.species]
         for i in range(len(self.species)):
             self.species[i] = []
+        # self.species = [[]] * len(reps)
         for i in range(len(self.population)):
             for j in range(len(self.species)):
-                if getDelta(reps[j].connectionGenes, self.population[i].connectionGenes) < deltaT:
+
+                if (d := getDelta(reps[j].connectionGenes, self.population[i].connectionGenes)) < deltaT:
+                    print(f'i: {i} j: {j} d: {d}')
                     self.species[j].append(self.population[i])
                     self.population[i].species = j
+                    break
+
             else:
                 self.species.append([self.population[i]])
                 reps.append(self.population[i])
                 self.population[i].species = len(self.species) - 1
+                
+        # """
         # explict fitness sharing
         for net in self.population:
             net.adjustedFitness = adjustFitness(net)
@@ -202,42 +214,55 @@ class Pop:
         # the culling
         fitnessOrder = list(self.population)
         fitnessOrder.sort(key=lambda x: x.adjustedFitness)
-        for species in self.species:
-            print([net.adjustedFitness for net in species])
-        offspringWeights = [sum([net.adjustedFitness for net in species]) for species in self.species]  # lovely
+        # for species in self.species:
+        #     print([net.adjustedFitness for net in species])
         for i in range(int(len(fitnessOrder) * 0.5)):
             del self.species[fitnessOrder[i].species][0]  # works bc both list are sorted
+        i = 0
+        while i < len(self.species):
+            if len(self.species[i]) == 0:
+                del self.species[i]
+                i -= 1
+            i += 1
         # TODO: mention of distribution in pg110
         # mutation and crossover
+        offspringWeights = [sum([net.adjustedFitness for net in species]) for species in self.species]  # lovely
         print(offspringWeights)
+        print([sum([net.fitness for net in species]) for species in self.species])
         savedNets = []
+        # """
         for i in range(len(self.species)):
             if len(self.species[i]) > 5:  # saves best of significant populations
                 savedNets.append({'Nodes': list(self.species[i][-1].nodeGenes),
                                   'Connections': list(self.species[i][-1].connectionGenes),
                                   'Species': i})
+        # """
         weightSum = sum(offspringWeights)
-        for i in range(len(self.species)):
-            if weightSum > 0:
-                for j in range(int(self.netNum * 0.75 * (offspringWeights[i] / weightSum))):
-                    savedNets.append(self.crossover(choice(self.species[i]), choice(self.species[i])))
-        for i in range(len(self.species)):
-            if weightSum > 0:
-                for j in range(
-                        int((self.netNum - len(savedNets)) * (offspringWeights[i] / weightSum))):  # might be over 3/4 full
-                    net = choice(self.species[i])
-                    fitnessOrder[0].connectionGenes = net.connectionGenes
-                    fitnessOrder[0].nodeGenes = net.connectionGenes
-                    self.mutateNet(fitnessOrder[0], (1, 5))
-                    savedNets.append({'Nodes': list(fitnessOrder[0].nodeGenes),
-                                      'Connections': list(fitnessOrder[0].connectionGenes),
-                                      'Species': i})
+        print(weightSum)
+        print(sum([int(self.netNum * (offspringWeights[i] / weightSum))
+                   for i in range(len(offspringWeights))]))
+        for i in range(ceil((self.netNum - len(savedNets)) * 0.75)):
+            num = choices(range(len(self.species)), weights=offspringWeights)[0]
+            savedNets.append(self.crossover(choice(self.species[num]), choice(self.species[num])))
+        # TODO: fix this to make exactly 200 nets
+        for i in range(ceil((self.netNum - len(savedNets)))):
+            num = choices(range(len(self.species)), weights=offspringWeights)[0]
+            net = choice(self.species[num])
+            fitnessOrder[0].connectionGenes = net.connectionGenes
+            fitnessOrder[0].nodeGenes = net.nodeGenes
+            self.mutateNet(fitnessOrder[0], (1, 5))
+            savedNets.append({'Nodes': list(fitnessOrder[0].nodeGenes),
+                              'Connections': list(fitnessOrder[0].connectionGenes),
+                              'Species': num})
+        print(len(self.species))
         print(len(savedNets))
         print(len(self.population))
+        print([len(i) for i in self.species])
         for i, net in enumerate(self.population):
             net.connectionGenes = savedNets[i]['Connections']
             net.nodeGenes = savedNets[i]['Nodes']
             # net.species = savedNets[i]['Species']
+
 
         # TODO: figure out how to make it have only a few species and not nore saved nets than in population
         #  might need to purge empty species net idk

@@ -66,7 +66,7 @@ if __name__ == '__main__':
     netNum = shipcount
     inNum = 8
     outNum = 4
-    connectionMutationChance = 0.5
+    connectionMutationChance = 0.05
     nodeMutationChance = 0.03
     weightMutationChance = 0.8
     crossoverNum = 3
@@ -121,7 +121,7 @@ if __name__ == '__main__':
             """
             population.repopulate()
             #   TODO: this ^ is super temporary until i can convince myself to figure out the speciation
-            population.mutateNets((1, 5), 3)
+            # population.mutateNets((1, 5), 3)
             # TODO: maybe re-sort net population based on ship score
             #  each time to allow easy easy access to the best nets
             population.finishGeneration()
